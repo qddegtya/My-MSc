@@ -141,7 +141,6 @@ reflex run
 
 ## 文档
 
-- [CLAUDE.md](./CLAUDE.md) - Claude Code 项目指南
 - [DOCKER.md](./DOCKER.md) - Docker 部署详细说明
 - [PROJECT_STRUCTURE.md](./PROJECT_STRUCTURE.md) - 完整目录结构
 

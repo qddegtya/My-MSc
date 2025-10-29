@@ -51,7 +51,6 @@ eda/
 ├── Dockerfile                       # Docker 镜像定义
 ├── docker-compose.yml               # Docker Compose 服务编排
 ├── .dockerignore                    # Docker 构建排除规则
-├── CLAUDE.md                        # Claude Code 项目指南
 ├── DOCKER.md                        # Docker 部署文档
 ├── README.md                        # 项目主文档
 └── PROJECT_STRUCTURE.md             # 本文件
