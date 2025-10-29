@@ -1,0 +1,47 @@
+services:
+  # Jupyter Lab only (for analysis work)
+  jupyter:
+    build: .
+    image: charlie-kirk-eda:latest
+    container_name: ck-eda-jupyter
+    working_dir: /workspace
+    volumes:
+      - ./:/workspace
+    ports:
+      - "8888:8888"
+    environment:
+      - TOKENIZERS_PARALLELISM=false
+    entrypoint: ["/bin/bash", "/workspace/scripts/entrypoint.sh", "jupyter"]
+
+  # Reflex Dashboard only (for visualization)
+  dashboard:
+    build: .
+    image: charlie-kirk-eda:latest
+    container_name: ck-eda-dashboard
+    working_dir: /workspace
+    volumes:
+      - ./:/workspace
+    ports:
+      - "8700:8700"
+      - "3000:3000"
+    environment:
+      - TOKENIZERS_PARALLELISM=false
+    depends_on:
+      - jupyter
+    entrypoint: ["/bin/bash", "/workspace/scripts/entrypoint.sh", "dashboard"]
+
+  # All-in-one (Jupyter + Dashboard)
+  eda:
+    build: .
+    image: charlie-kirk-eda:latest
+    container_name: ck-eda-all
+    working_dir: /workspace
+    volumes:
+      - ./:/workspace
+    ports:
+      - "8888:8888"
+      - "8700:8700"
+      - "3000:3000"
+    environment:
+      - TOKENIZERS_PARALLELISM=false
+    entrypoint: ["/bin/bash", "/workspace/scripts/entrypoint.sh", "all"]

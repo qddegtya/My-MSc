@@ -1,0 +1,31 @@
+*.db
+assets/external/
+.states
+.web
+*.py[cod]
+__pycache__/
+
+# AI
+.claude/
+.serena/
+CLAUDE.md
+
+# Private
+__data/
+
+# venv
+.venv/
+
+# jupyter notebooks
+.ipynb_checkpoints/
+
+# paquetes
+parquet/
+*.parquet
+
+# reports
+reports/
+
+# DS_Store
+.DS_Store
+Thumbs.db

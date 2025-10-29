@@ -1,0 +1,55 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg-info/
+dist/
+build/
+.venv/
+venv/
+ENV/
+
+# Jupyter
+.ipynb_checkpoints/
+*.ipynb_checkpoints
+
+# Data files (should be volume-mounted)
+__data/
+notebooks/parquet/*.parquet
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+
+# Git
+.git/
+.gitignore
+.gitattributes
+
+# Documentation
+*.md
+!README.md
+!CLAUDE.md
+
+# Logs
+*.log
+
+# Cache
+.cache/
+.pytest_cache/
+
+# Reflex
+.web/
+dashboards/.web/
+dashboards/assets/
+rxconfig.py
+
+# Temporary files
+tmp/
+temp/
+*.tmp
