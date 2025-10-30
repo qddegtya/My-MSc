@@ -28,4 +28,5 @@ reflex>=0.8.17
 
 # Development Tools
 jupyterlab>=4.0.0
+ipywidgets>=8.0.0
 rich>=13.0.0

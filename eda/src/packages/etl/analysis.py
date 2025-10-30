@@ -24,13 +24,26 @@ class TimeSeriesProfile:
 def build_time_series(df: pl.DataFrame, date_col: str, value_col: str) -> TimeSeriesProfile:
     """
     基于每日聚合构建时间序列指标。当前实现聚焦于骨架，后续在 Notebook 中扩展。
+    支持 String 或 datetime 类型的日期列。
     """
-    daily = (
-        df.with_columns(pl.col(date_col).str.to_datetime(time_zone="UTC").dt.date().alias("event_date"))
-        .group_by("event_date")
-        .agg(pl.count().alias("tweet_count"), pl.col(value_col).sum().alias("total_engagement"))
-        .sort("event_date")
-    )
+    # 智能处理日期列：如果已经是 datetime 就直接用，否则先转换
+    date_dtype = df[date_col].dtype
+    if date_dtype in [pl.Datetime, pl.Datetime("us"), pl.Datetime("ms"), pl.Datetime("ns"), pl.Datetime("us", "UTC")]:
+        # 已经是 datetime，直接提取 date
+        daily = (
+            df.with_columns(pl.col(date_col).dt.date().alias("event_date"))
+            .group_by("event_date")
+            .agg(pl.count().alias("tweet_count"), pl.col(value_col).sum().alias("total_engagement"))
+            .sort("event_date")
+        )
+    else:
+        # String 类型，需要先转换
+        daily = (
+            df.with_columns(pl.col(date_col).str.to_datetime(time_zone="UTC").dt.date().alias("event_date"))
+            .group_by("event_date")
+            .agg(pl.count().alias("tweet_count"), pl.col(value_col).sum().alias("total_engagement"))
+            .sort("event_date")
+        )
 
     rolling = (
         daily.sort("event_date")
