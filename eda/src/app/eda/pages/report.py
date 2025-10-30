@@ -475,8 +475,9 @@ def report_page() -> rx.Component:
                     align_items="center",
                     width="100%",
                 ),
+                width="100%",
                 padding="1.8em 2em",
-                background="linear-gradient(90deg, #1e3a8a 0%, #3b82f6 100%)",
+                background="#f0f0f0",
                 margin_bottom="1.5em",
             ),
 
@@ -537,7 +538,7 @@ def report_page() -> rx.Component:
             width="100%",
             padding="1.5em",
         ),
-        background="#F3F4F6",
+        background="#F9F9F9",
         min_height="100vh",
         width="100%",
     )
