@@ -465,9 +465,9 @@ def report_page() -> rx.Component:
             rx.box(
                 rx.hstack(
                     rx.vstack(
-                        rx.heading("Charlie Kirk 暗杀事件社交媒体舆论分析", size="8", color="white", font_weight="700"),
-                        rx.text("2025年9月10日政治暗杀事件后72小时公共话语演变研究", font_size="1.1em", color="rgba(255,255,255,0.9)"),
-                        rx.text(f"数据来源: Twitter/X | {data['date_range']} | NLP情感分析", font_size="0.9em", color="rgba(255,255,255,0.75)"),
+                        rx.heading("Charlie Kirk 遇刺事件社交媒体舆论分析", size="8", color="#333333", font_weight="700"),
+                        rx.text("2025 年 9 月 10 日遇刺事件后 72 小时公共（Twitter）话语演变研究", font_size="1.1em", color="#666666"),
+                        rx.text(f"数据来源: Twitter/X | {data['date_range']} | NLP 情感分析", font_size="0.9em", color="#666666"),
                         spacing="1",
                         align_items="flex_start",
                     ),
@@ -477,7 +477,9 @@ def report_page() -> rx.Component:
                 ),
                 width="100%",
                 padding="1.8em 2em",
-                background="#f0f0f0",
+                background="white",
+                border_radius="6px",
+                box_shadow="0 1px 3px rgba(0,0,0,0.1)",
                 margin_bottom="1.5em",
             ),
 
@@ -485,8 +487,8 @@ def report_page() -> rx.Component:
             rx.grid(
                 kpi_card("📊", "总推文数", f"{data['total_tweets']:,}", COLORS['blue']),
                 kpi_card("🔍", "分析样本", f"{data['total_sampled']:,}", COLORS['orange']),
-                kpi_card("⏱️", "时间跨度", "72小时", COLORS['green']),
-                kpi_card("❤️", "情感维度", "6维", COLORS['red']),
+                kpi_card("⏱️", "时间跨度", "72 小时", COLORS['green']),
+                kpi_card("❤️", "情感维度", "6 维", COLORS['red']),
                 columns="4",
                 spacing="3",
                 width="100%",

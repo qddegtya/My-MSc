@@ -7,4 +7,5 @@ config = rx.Config(
     disable_plugins=[
         "reflex.plugins.sitemap.SitemapPlugin"
     ],
+    show_built_with_reflex=False,
 )
