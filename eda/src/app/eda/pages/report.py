@@ -47,12 +47,22 @@ def load_all_data() -> dict:
         narrative_evo = pl.read_parquet(str(PARQUET_DIR / "narrative_evolution.parquet"))
         hourly_df = pl.read_parquet(str(PARQUET_DIR / "tweets_hourly.parquet"))
 
+        # 【优化新增】加载作者画像数据（如果存在）
+        try:
+            author_prof = pl.read_parquet(str(PARQUET_DIR / "author_profiling.parquet"))
+            top_50 = pl.read_parquet(str(PARQUET_DIR / "top_50_influencers.parquet"))
+        except:
+            author_prof = None
+            top_50 = None
+
         return {
             "tweets_df": tweets_df,
             "content_df": content_df,
             "emotion_evo": emotion_evo,
             "narrative_evo": narrative_evo,
             "hourly_df": hourly_df,
+            "author_prof": author_prof,
+            "top_50": top_50,
             "total_tweets": tweets_df.height,
             "total_sampled": content_df.height,
             "date_range": f"{str(tweets_df['createdAt'].min())[:10]} ~ {str(tweets_df['createdAt'].max())[:10]}",
@@ -395,6 +405,128 @@ def create_engagement_scatter(content_df: pl.DataFrame) -> str:
     return fig.to_html(include_plotlyjs='cdn', div_id="engagement_scatter")
 
 
+def create_stance_improvement_bar(content_df: pl.DataFrame) -> str:
+    """【优化新增】立场分类改进对比图"""
+    # 如果有author_stance_prelabel，计算改进效果
+    if 'author_stance_prelabel' not in content_df.columns:
+        return ""
+
+    # 统计有bio立场的作者推文分布
+    with_bio = content_df.filter(pl.col('author_stance_prelabel') != 'neutral')
+
+    # 对比bio预标注 vs 最终立场
+    bio_dist = with_bio.group_by('author_stance_prelabel').agg(pl.len().alias('count')).to_pandas()
+    final_dist = with_bio.group_by('political_stance').agg(pl.len().alias('count')).to_pandas()
+
+    fig = go.Figure()
+
+    stances = ['conservative', 'liberal', 'neutral']
+    for idx, (df, name) in enumerate([(bio_dist, 'Bio预标注'), (final_dist, '混合分类')]):
+        counts = [df[df.iloc[:, 0] == s]['count'].values[0] if len(df[df.iloc[:, 0] == s]) > 0 else 0 for s in stances]
+        fig.add_trace(go.Bar(
+            name=name,
+            x=[STANCE_CN[s] for s in stances],
+            y=counts,
+            text=counts,
+            textposition='outside',
+            marker_color=COLORS['gray'] if idx == 0 else COLORS['blue']
+        ))
+
+    fig.update_layout(
+        template='plotly_white',
+        barmode='group',
+        height=280,
+        font=dict(size=11),
+        xaxis=dict(title='', showgrid=False),
+        yaxis=dict(title='推文数', showgrid=True, gridcolor='#E5E5E5'),
+        legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="left", x=0),
+        margin=dict(t=30, b=30, l=50, r=10),
+    )
+    return fig.to_html(include_plotlyjs='cdn', div_id="stance_improvement")
+
+
+def create_author_influence_stance(author_prof: pl.DataFrame) -> str:
+    """【优化新增】影响力分层立场分布"""
+    if author_prof is None:
+        return ""
+
+    df = author_prof.to_pandas()
+
+    # 【修复】使用实际数据中的分层值
+    tiers = ['Mega (1M+)', 'High (100K-1M)', 'Medium (10K-100K)']
+    stances = ['conservative', 'liberal', 'neutral']
+
+    fig = go.Figure()
+
+    for stance in stances:
+        counts = []
+        for tier in tiers:
+            val = df[(df['influence_tier'] == tier) & (df['bio_stance'] == stance)]
+            counts.append(len(val) if not val.empty else 0)
+
+        fig.add_trace(go.Bar(
+            name=STANCE_CN[stance],
+            x=tiers,
+            y=counts,
+            marker_color=COLORS['red'] if stance == 'conservative' else (COLORS['blue'] if stance == 'liberal' else COLORS['gray'])
+        ))
+
+    fig.update_layout(
+        template='plotly_white',
+        barmode='stack',
+        height=280,
+        font=dict(size=11),
+        xaxis=dict(title='', showgrid=False),
+        yaxis=dict(title='作者数', showgrid=True, gridcolor='#E5E5E5'),
+        legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="left", x=0),
+        margin=dict(t=30, b=30, l=50, r=10),
+    )
+    return fig.to_html(include_plotlyjs='cdn', div_id="influence_stance")
+
+
+def create_top_influencers_table(top_50: pl.DataFrame) -> str:
+    """【优化新增】Top 10影响力作者表格 - 使用 Plotly Table"""
+    if top_50 is None:
+        return ""
+
+    df = top_50.head(10).to_pandas()
+
+    # 准备表格数据
+    ranks = [f"#{i+1}" for i in range(len(df))]
+    author_ids = [f"用户{str(row['pseudo_author_userName'])[:12]}" for _, row in df.iterrows()]
+    followers = [f"{row['followers']:,}" for _, row in df.iterrows()]
+    tweet_counts = [str(row['tweet_count']) for _, row in df.iterrows()]
+    bio_stances = [STANCE_CN.get(row.get('bio_stance', 'neutral'), '中立') for _, row in df.iterrows()]
+    tweet_stances = [STANCE_CN.get(row.get('tweet_stance_mode', 'neutral'), '中立') for _, row in df.iterrows()]
+    consistencies = [row.get('stance_consistency', '-') for _, row in df.iterrows()]
+
+    # 创建 Plotly 表格
+    fig = go.Figure(data=[go.Table(
+        header=dict(
+            values=['<b>排名</b>', '<b>作者ID</b>', '<b>Followers</b>', '<b>推文数</b>',
+                    '<b>Bio立场</b>', '<b>推文立场</b>', '<b>一致性</b>'],
+            fill_color=COLORS['blue'],
+            align='center',
+            font=dict(color='white', size=13, family='Arial'),
+            height=35
+        ),
+        cells=dict(
+            values=[ranks, author_ids, followers, tweet_counts, bio_stances, tweet_stances, consistencies],
+            fill_color=[['#f9fafb', 'white'] * 5],  # 交替行颜色
+            align=['center', 'left', 'right', 'right', 'center', 'center', 'center'],
+            font=dict(color='#333', size=12, family='Arial'),
+            height=30
+        )
+    )])
+
+    fig.update_layout(
+        margin=dict(l=0, r=0, t=0, b=0),
+        height=380,
+    )
+
+    return fig.to_html(include_plotlyjs='cdn', div_id="top_influencers_table")
+
+
 def get_rep_tweets(content_df: pl.DataFrame) -> list[dict]:
     """获取代表性推文"""
     tweets = []
@@ -456,6 +588,11 @@ def report_page() -> rx.Component:
     stance_radar = create_stance_radar(data["content_df"])
     narrative_comparison = create_narrative_bar_comparison(data["content_df"])
     engagement_scatter = create_engagement_scatter(data["content_df"])
+
+    # 【优化新增】作者画像相关图表
+    stance_improvement = create_stance_improvement_bar(data["content_df"])
+    influence_stance = create_author_influence_stance(data["author_prof"])
+    top_influencers_table = create_top_influencers_table(data["top_50"])
 
     rep_tweets = get_rep_tweets(data["content_df"])
 
@@ -521,18 +658,57 @@ def report_page() -> rx.Component:
                 margin_bottom="1.5em",
             ),
 
-            # ==================== 代表性推文 ====================
-            rx.box(
+            # ==================== 【优化新增】作者画像分析区 ====================
+            rx.cond(
+                data["author_prof"] is not None,
                 rx.vstack(
-                    rx.text("代表性推文", font_size="1.2em", font_weight="600", color="#333", margin_bottom="0.8em"),
-                    *[tweet_card(t) for t in rep_tweets],
+                    # 图表区
+                    rx.grid(
+                        rx.cond(
+                            stance_improvement != "",
+                            chart_box("立场分类改进对比", stance_improvement),
+                            rx.box(),
+                        ),
+                        rx.cond(
+                            influence_stance != "",
+                            chart_box("影响力分层立场分布", influence_stance),
+                            rx.box(),
+                        ),
+                        columns="2",
+                        spacing="3",
+                        width="100%",
+                        margin_bottom="1.5em",
+                    ),
                     spacing="0",
-                    align_items="flex_start",
+                    width="100%",
                 ),
-                padding="1.5em",
-                background="white",
-                border_radius="6px",
-                box_shadow="0 1px 3px rgba(0,0,0,0.1)",
+                rx.box(),
+            ),
+
+            # ==================== Top 50 作者 & 代表性推文（并排）====================
+            rx.grid(
+                # Top 10 高影响力作者
+                rx.cond(
+                    top_influencers_table != "",
+                    chart_box("Top 10 高影响力作者", top_influencers_table),
+                    rx.box(),
+                ),
+                # 代表性推文
+                rx.box(
+                    rx.vstack(
+                        rx.text("代表性推文", font_size="1.2em", font_weight="600", color="#333", margin_bottom="0.8em"),
+                        *[tweet_card(t) for t in rep_tweets],
+                        spacing="0",
+                        align_items="flex_start",
+                    ),
+                    padding="1.5em",
+                    background="white",
+                    border_radius="6px",
+                    box_shadow="0 1px 3px rgba(0,0,0,0.1)",
+                    width="100%",
+                ),
+                columns="2",
+                spacing="3",
                 width="100%",
             ),
 
